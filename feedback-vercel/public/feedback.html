@@ -117,7 +117,7 @@ document.getElementById('employeeId').value = employeeFromUrl;
         serviceType: 'default' // Можна додати поле, якщо потрібно
       };
       try {
-        const response = await fetch('http://localhost:5000/api/feedback', { // Зміни на твій backend URL
+        const response = await fetch('/api/feedbacks')
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
