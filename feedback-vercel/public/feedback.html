@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оцініть нас</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 300px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .stars {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .star {
+      font-size: 30px;
+      color: #ccc; /* Сірий за замовчуванням */
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .star.selected {
+      color: #ffd700; /* Жовтий для обраних */
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      resize: none;
+      font-size: 14px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Оцініть нас</h1>
+    <div class="stars">
+      <span class="star" data-rating="1">&#9733;</span>
+      <span class="star" data-rating="2">&#9733;</span>
+      <span class="star" data-rating="3">&#9733;</span>
+      <span class="star" data-rating="4">&#9733;</span>
+      <span class="star" data-rating="5">&#9733;</span>
+    </div>
+    <form id="feedbackForm">
+      <textarea id="comment" placeholder="Ваш коментар..."></textarea>
+      <input type="hidden" id="rating" value="0">
+      <input type="hidden" id="employeeId" value="">
+      <button type="submit">Надіслати відгук</button>
+    </form>
+  </div>
+
+  <script>
+    // Витягнути employeeId з URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const employeeFromUrl = urlParams.get('employee') || urlParams.get('id') || 'unknown';
+document.getElementById('employeeId').value = employeeFromUrl;
+    // Логіка для зірок
+    const stars = document.querySelectorAll('.star');
+    let selectedRating = 0;
+
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        selectedRating = star.getAttribute('data-rating');
+        document.getElementById('rating').value = selectedRating;
+        stars.forEach(s => {
+          s.classList.toggle('selected', s.getAttribute('data-rating') <= selectedRating);
+        });
+      });
+    });
+
+    // Відправка форми
+    document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (selectedRating === 0) {
+        alert('Будь ласка, оберіть оцінку!');
+        return;
+      }
+      const data = {
+        employeeId: document.getElementById('employeeId').value,
+        rating: selectedRating,
+        comment: document.getElementById('comment').value,
+        serviceType: 'default' // Можна додати поле, якщо потрібно
+      };
+      try {
+        const response = await fetch('http://localhost:5000/api/feedback', { // Зміни на твій backend URL
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (response.ok) {
+          alert('Дякуємо за відгук!');
+          // Очистити форму
+          document.getElementById('comment').value = '';
+          stars.forEach(s => s.classList.remove('selected'));
+          selectedRating = 0;
+          document.getElementById('rating').value = 0;
+        } else {
+          alert('Помилка при надсиланні.');
+        }
+      } catch (err) {
+        alert('Помилка: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Панель керівника – Відгуки</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:20px; background:#f5f5f5; }
+    .card { background:white; border-radius:12px; padding:20px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-bottom:20px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:12px; text-align:left; border-bottom:1px solid #ddd; }
+    th { background:#007bff; color:white; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:15px; margin:20px 0; }
+    .stat-card { background:#007bff; color:white; padding:20px; border-radius:10px; text-align:center; font-size:18px; }
+    h1 { text-align:center; color:#333; }
+  </style>
+</head>
+<body>
+  <h1>Відгуки клієнтів</h1>
+  <div class="stats" id="stats"></div>
+  <div class="card">
+    <canvas id="ratingChart"></canvas>
+  </div>
+  <div class="card">
+    <table id="table"></table>
+  </div>
+
+<script>
+async function loadData() {
+  const res = await fetch('http://localhost:5000/api/feedbacks');
+  const data = await res.json();
+
+  // Таблиця
+  const tbody = document.getElementById('table');
+  tbody.innerHTML = `<tr><th>Працівник</th><th>Оцінка</th><th>Коментар</th><th>Час</th></tr>`;
+  data.forEach(f => {
+    const tr = tbody.insertRow();
+    tr.innerHTML = `<td>${f.employeeId || 'невідомо'}</td>
+                    <td>${'★'.repeat(f.rating)}${'☆'.repeat(5-f.rating)}</td>
+                    <td>${f.comment || '—'}</td>
+                    <td>${new Date(f.timestamp).toLocaleString('uk-UA')}</td>`;
+  });
+
+  // Статистика
+  const total = data.length;
+  const avg = data.reduce((a,b)=>a+b.rating,0)/total || 0;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card">Всього відгуків<br><b>${total}</b></div>
+    <div class="stat-card">Середня оцінка<br><b>${avg.toFixed(1)} ★</b></div>
+    <div class="stat-card">Сьогодні<br><b>${data.filter(d=>new Date(d.timestamp).toDateString()===new Date().toDateString()).length}</b></div>
+  `;
+
+  // Графік
+  const ctx = document.getElementById('ratingChart').getContext('2d');
+  const counts = [0,0,0,0,0];
+  data.forEach(f => counts[f.rating-1]++);
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: ['1★','2★','3★','4★','5★'], datasets: [{ label: 'Кількість', data: counts, backgroundColor: '#007bff' }] },
+    options: { responsive:true, scales: { y: { beginAtZero:true, ticks: { stepSize:1 } } } }
+  });
+}
+loadData();
+setInterval(loadData, 10000); // оновлення кожні 10 секунд
+</script>
+</body>
+</html>
