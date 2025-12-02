@@ -30,9 +30,9 @@
         .rating {
             display: flex;
             justify-content: center;
-            flex-direction: row-reverse; /* важливо для правильного підсвічування */
+            flex-direction: row-reverse;
             gap: 8px;
-            margin-bottom: 10px; /* зменшено, щоб текст був ближче */
+            margin-bottom: 10px;
         }
         .rating input {
             display: none;
@@ -53,7 +53,7 @@
             font-size: 18px;
             color: #555;
             margin-bottom: 25px;
-            min-height: 20px; /* щоб не стрибало */
+            min-height: 20px;
         }
         textarea {
             width: 100%;
@@ -64,6 +64,7 @@
             resize: none;
             font-family: inherit;
             margin-bottom: 15px;
+            box-sizing: border-box;
         }
         button {
             width: 100%;
@@ -79,11 +80,18 @@
         button:hover {
             background-color: #0056b3;
         }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
         #result {
             margin-top: 20px;
             font-size: 18px;
             color: #28a745;
             font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
         }
     </style>
 </head>
@@ -93,11 +101,11 @@
         
         <form id="feedbackForm">
             <div class="rating">
-                <input type="radio" id="star5" name="rating" value="5"><label for="star5">✸</label>
-                <input type="radio" id="star4" name="rating" value="4"><label for="star4">✸</label>
-                <input type="radio" id="star3" name="rating" value="3"><label for="star3">✸</label>
-                <input type="radio" id="star2" name="rating" value="2"><label for="star2">✸</label>
-                <input type="radio" id="star1" name="rating" value="1"><label for="star1">✸</label>
+                <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+                <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+                <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+                <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+                <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
             </div>
             <div id="rating-text"></div>
 
@@ -109,7 +117,6 @@
     </div>
 
     <script>
-
         const ratingTexts = {
             1: 'Погано',
             2: 'Слабко',
@@ -118,6 +125,11 @@
             5: 'Зразково'
         };
 
+        // Витягнути employeeId з URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const employeeId = urlParams.get('employee') || urlParams.get('id') || 'unknown';
+
+        // Відображення тексту оцінки
         const ratingInputs = document.querySelectorAll('.rating input');
         ratingInputs.forEach(input => {
             input.addEventListener('change', function() {
@@ -126,60 +138,56 @@
             });
         });
 
-        document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+        // Відправка форми
+        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const rating = document.querySelector('input[name="rating"]:checked');
             const comment = document.getElementById('comment').value.trim();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('result');
 
-            if (rating) {
-                let resultText = 'Дякуємо за відгук! Ваша оцінка: ' + rating.value + ' ✸ / 5';
-                if (comment) {
-                    resultText += ' Коментар: "' + comment + '"';
+            if (!rating) {
+                resultDiv.className = 'error';
+                resultDiv.innerText = 'Будь ласка, оберіть оцінку!';
+                return;
+            }
+
+            const data = {
+                employeeId: employeeId,
+                rating: parseInt(rating.value),
+                comment: comment
+            };
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Надсилання...';
+
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    resultDiv.className = '';
+                    resultDiv.innerText = 'Дякуємо за відгук! Ваша оцінка: ' + rating.value + ' ★';
+                    
+                    // Очистити форму
+                    document.getElementById('comment').value = '';
+                    ratingInputs.forEach(input => input.checked = false);
+                    document.getElementById('rating-text').innerText = '';
+                } else {
+                    throw new Error('Помилка сервера');
                 }
-                document.getElementById('result').innerHTML = resultText;
-            } else {
-                alert('Будь ласка, поставте оцінку.');
+            } catch (err) {
+                resultDiv.className = 'error';
+                resultDiv.innerText = 'Помилка при надсиланні: ' + err.message;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Надіслати відгук';
             }
         });
-			 // Витягнути employeeId з URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const employeeFromUrl = urlParams.get('employee') || urlParams.get('id') || 'unknown';
-document.getElementById('employeeId').value = employeeFromUrl;
-    
-
-    // Відправка форми
-    document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (selectedRating === 0) {
-        alert('Будь ласка, оберіть оцінку!');
-        return;
-      }
-      const data = {
-        employeeId: document.getElementById('employeeId').value,
-        rating: selectedRating,
-        comment: document.getElementById('comment').value,
-        serviceType: 'default' // Можна додати поле, якщо потрібно
-      };
-      try {
-const response = await fetch('/api/feedback', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(data)
-});
-        if (response.ok) {
-          alert('Дякуємо за відгук!');
-          // Очистити форму
-          document.getElementById('comment').value = '';
-          stars.forEach(s => s.classList.remove('selected'));
-          selectedRating = 0;
-          document.getElementById('rating').value = 0;
-        } else {
-          alert('Помилка при надсиланні.');
-        }
-      } catch (err) {
-        alert('Помилка: ' + err.message);
-      }
-    });
     </script>
 </body>
 </html>
