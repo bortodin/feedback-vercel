@@ -144,7 +144,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ 
       error: 'Помилка сервера', 
       message: error.message,
-      hint: 'Перевірте підключення до MongoDB Atlas та налаштування Network Access'
+      hint: 'Перевірь підключення до MongoDB Atlas та налаштування Network Access'
     });
   }
 }
+
