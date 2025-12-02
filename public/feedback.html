@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Оцінка та коментар</title>
+    <title>Оцінка і коментар</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,8 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            width: 420px;
+            max-width: 420px;
+            width: 100%;
             text-align: center;
         }
         h1 {
@@ -77,7 +78,7 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #0056b3;
         }
         button:disabled {
@@ -86,12 +87,18 @@
         }
         #result {
             margin-top: 20px;
-            font-size: 18px;
-            color: #28a745;
+            font-size: 16px;
             font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
         }
         .error {
-            color: #dc3545;
+            background-color: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
@@ -109,7 +116,7 @@
             </div>
             <div id="rating-text"></div>
 
-            <textarea id="comment" placeholder="Ваш коментар..."></textarea>
+            <textarea id="comment" placeholder="Ваш коментар (необов'язково)..."></textarea>
             <button type="submit">Надіслати відгук</button>
         </form>
 
@@ -122,12 +129,12 @@
             2: 'Слабко',
             3: 'Посередньо',
             4: 'Добре',
-            5: 'Зразково'
+            5: 'Чудово'
         };
 
         // Витягнути employeeId з URL
         const urlParams = new URLSearchParams(window.location.search);
-        const employeeId = urlParams.get('employee') || urlParams.get('id') || 'unknown';
+        const employeeId = urlParams.get('employee') || urlParams.get('id') || 'Невідомий';
 
         // Відображення тексту оцінки
         const ratingInputs = document.querySelectorAll('.rating input');
@@ -147,6 +154,7 @@
             const submitBtn = e.target.querySelector('button[type="submit"]');
             const resultDiv = document.getElementById('result');
 
+            // Перевірка вибору оцінки
             if (!rating) {
                 resultDiv.className = 'error';
                 resultDiv.innerText = 'Будь ласка, оберіть оцінку!';
@@ -162,27 +170,41 @@
             try {
                 submitBtn.disabled = true;
                 submitBtn.innerText = 'Надсилання...';
+                resultDiv.innerText = '';
+                resultDiv.className = '';
 
+                // ВАЖЛИВО: використовуємо відносний шлях /api/feedback
                 const response = await fetch('/api/feedback', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(data)
                 });
 
+                const result = await response.json();
+
                 if (response.ok) {
-                    resultDiv.className = '';
-                    resultDiv.innerText = 'Дякуємо за відгук! Ваша оцінка: ' + rating.value + ' ★';
+                    resultDiv.className = 'success';
+                    resultDiv.innerText = '✓ Дякуємо за відгук! Ваша оцінка: ' + rating.value + ' ★';
                     
                     // Очистити форму
                     document.getElementById('comment').value = '';
                     ratingInputs.forEach(input => input.checked = false);
                     document.getElementById('rating-text').innerText = '';
+                    
+                    // Показати повідомлення 3 секунди
+                    setTimeout(() => {
+                        resultDiv.innerText = '';
+                        resultDiv.className = '';
+                    }, 3000);
                 } else {
-                    throw new Error('Помилка сервера');
+                    throw new Error(result.error || 'Помилка сервера');
                 }
             } catch (err) {
+                console.error('Помилка:', err);
                 resultDiv.className = 'error';
-                resultDiv.innerText = 'Помилка при надсиланні: ' + err.message;
+                resultDiv.innerText = '✗ Помилка: ' + err.message;
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'Надіслати відгук';
